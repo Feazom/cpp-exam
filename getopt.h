@@ -8,9 +8,9 @@
 #pragma once
 
 struct globalArgs_t {
-    uint16_t port;
-    const char *host;
-    const char *dir_name;
+    uint16_t port;           /* param -p */
+    const char *host;        /* param -h */
+    const char *dir_name;    /* param -d */
 } globalArgs;
 
 static const char *optString = "h:p:d:?";

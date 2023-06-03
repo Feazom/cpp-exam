@@ -36,7 +36,7 @@ int set_nonblock(int fd) {
 
 }
 
-inline void AddFd(int epollfd, int fd, bool oneshot) {
+inline void add_fd(int epollfd, int fd, bool oneshot) {
     struct epoll_event event;
     event.data.fd = fd;
     event.events = EPOLLIN | EPOLLET;
@@ -178,7 +178,7 @@ int run(const int argc, const char **argv) {
     if (epfd == -1)
         perror("fail to create epoll\n"), exit(errno);
 
-    AddFd(epfd, masterSocket, false);
+    add_fd(epfd, masterSocket, false);
 
     for (;;) {
         int ret = epoll_wait(epfd, events, MAX_EVENT_NUMBER, -1);
@@ -193,7 +193,7 @@ int run(const int argc, const char **argv) {
                 struct sockaddr_in slave_address;
                 socklen_t slave_addrlength = sizeof(slave_address);
                 int slaveSocket = accept(masterSocket, (struct sockaddr *) &slave_address, &slave_addrlength);
-                AddFd(epfd, slaveSocket, true);
+                add_fd(epfd, slaveSocket, true);
             } else if (events[i].events & EPOLLIN) {
                 pthread_t thread;
                 struct fds fds_for_new_worker;
