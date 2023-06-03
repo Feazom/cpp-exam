@@ -71,17 +71,25 @@ std::string parse_request(const std::string &for_parse) {
 
 std::string http_error_404() {
     std::stringstream ss;
-    ss << "HTTP/1.0 404 NOT FOUND\r\n";
-    ss << "Content-length: 0\r\n";
-    ss << "Content-Type: text/html\r\n\r\n";
+    ss << "HTTP/1.0 404 NOT FOUND";
+    ss << "\r\n";
+    ss << "Content-length: 0";
+    ss << "\r\n";
+    ss << "Content-Type: text/html";
+    ss << "\r\n\r\n";
     return ss.str();
 }
 
-std::string http_ok_200(const std::string& data) {
+std::string http_ok_200(const std::string &data) {
     std::stringstream ss;
-    ss << "HTTP/1.0 200 OK\r\n";
-    ss << "Content-length: " << data.size() << "\r\n";
-    ss << "Content-Type: text/html\r\n\r\n";
+    ss << "HTTP/1.0 200 OK";
+    ss << "\r\n";
+    ss << "Content-length: ";
+    ss << data.size();
+    ss << "\r\n";
+    ss << "Content-Type: text/html";
+    ss << "\r\n";
+    ss << "\r\n";
     ss << data;
     return ss.str();
 }
@@ -246,6 +254,7 @@ static void skeleton_daemon() {
     for (x = sysconf(_SC_OPEN_MAX); x >= 0; x--) {
         close(x);
     }
+    
 }
 
 int main(const int argc, const char **argv) {
