@@ -18,24 +18,25 @@ std::string serv_dir{};
 #define MAX_EVENT_NUMBER 1024
 #define BUFFER_SIZE 10
 
-struct EpollContext {
+struct fds {
     int epollfd;
     int sockfd;
 };
 
 int set_nonblock(int fd) {
-    #if defined(O_NONBLOCK)
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1)
+    int flags;
+#if defined(O_NONBLOCK)
+    if (-1 == (flags = fcntl(fd, F_GETFL, 0)))
         flags = 0;
     return fcntl(fd, F_SETFL, (unsigned) flags | O_NONBLOCK);
-    #else
-    int flags = 1;
+#else
+    flags = 1;
     return ioctl(fd, FIONBIO, &flags);
-    #endif
+#endif
+
 }
 
-inline void add_fd(int epollfd, int fd, bool oneshot) {
+inline void AddFd(int epollfd, int fd, bool oneshot) {
     struct epoll_event event;
     event.data.fd = fd;
     event.events = EPOLLIN | EPOLLET;
@@ -121,8 +122,8 @@ inline void f(int &fd, const std::string &request) {
 
 
 void *worker(void *arg) {
-    int sockfd = ((struct EpollContext *) arg)->sockfd;
-    int epollfd = ((struct EpollContext *) arg)->epollfd;
+    int sockfd = ((struct fds *) arg)->sockfd;
+    int epollfd = ((struct fds *) arg)->epollfd;
     printf("start new thread to receive data on fd: %d\n", sockfd);
     char buf[BUFFER_SIZE];
     memset(buf, '\0', BUFFER_SIZE);
@@ -177,10 +178,10 @@ int run(const int argc, const char **argv) {
     if (epfd == -1)
         perror("fail to create epoll\n"), exit(errno);
 
-    add_fd(epfd, masterSocket, false);
+    AddFd(epfd, masterSocket, false);
 
     for (;;) {
-        int ret = epoll_wait(epfd, events, MAX_EVENT_NUMBER, -1); 
+        int ret = epoll_wait(epfd, events, MAX_EVENT_NUMBER, -1);
         if (ret < 0) {
             printf("epoll wait failure!\n");
             break;
@@ -192,13 +193,13 @@ int run(const int argc, const char **argv) {
                 struct sockaddr_in slave_address;
                 socklen_t slave_addrlength = sizeof(slave_address);
                 int slaveSocket = accept(masterSocket, (struct sockaddr *) &slave_address, &slave_addrlength);
-                add_fd(epfd, slaveSocket, true);
+                AddFd(epfd, slaveSocket, true);
             } else if (events[i].events & EPOLLIN) {
                 pthread_t thread;
-                struct EpollContext fds_for_new_worker;
+                struct fds fds_for_new_worker;
                 fds_for_new_worker.epollfd = epfd;
                 fds_for_new_worker.sockfd = events[i].data.fd;
-
+                
                 pthread_create(&thread, NULL, worker, &fds_for_new_worker);
 
             } else {
@@ -214,33 +215,33 @@ int run(const int argc, const char **argv) {
 
 static void skeleton_daemon() {
     pid_t pid;
-
+    
     pid = fork();
-
+    
     if (pid < 0)
         exit(EXIT_FAILURE);
-
+        
     if (pid > 0)
         exit(EXIT_SUCCESS);
-
+        
     if (setsid() < 0)
         exit(EXIT_FAILURE);
-
+        
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN);
-
+    
     pid = fork();
-
+    
     if (pid < 0)
         exit(EXIT_FAILURE);
-
+        
     if (pid > 0)
         exit(EXIT_SUCCESS);
-
+        
     umask(0);
-
+    
     chdir("/");
-
+    
     int x;
     for (x = sysconf(_SC_OPEN_MAX); x >= 0; x--) {
         close(x);
